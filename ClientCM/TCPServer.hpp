@@ -1,6 +1,6 @@
 #pragma once
 
-#include <asio.hpp>
+#include <boost/asio.hpp>
 #include <thread>
 #include <memory>
 #include <map>
@@ -16,11 +16,11 @@ private:
 	// port na ktorom pocuvame
 	int mPort;
 	
-	std::unique_ptr<asio::ip::tcp::acceptor> mAcceptor;
-	asio::io_service mService;
+	std::unique_ptr<boost::asio::ip::tcp::acceptor> mAcceptor;
+        boost::asio::io_service mService;
 
 	// otvorene spojenia
-	std::map<std::string, std::unique_ptr<asio::ip::tcp::socket>> mOpenedConnections;
+	std::map<std::string, std::unique_ptr<boost::asio::ip::tcp::socket>> mOpenedConnections;
 public:
 	TCPServer(int tcpPort);
 
@@ -29,10 +29,10 @@ public:
 
 	int getPort() const { return mPort; }
 
-	asio::io_service &getService() { return mService; }
-	std::unique_ptr<asio::ip::tcp::acceptor> getAcceptor() { return std::move(mAcceptor); }
+        boost::asio::io_service &getService() { return mService; }
+	std::unique_ptr<boost::asio::ip::tcp::acceptor> getAcceptor() { return std::move(mAcceptor); }
 
-	void addConnection(const std::string &name, std::unique_ptr<asio::ip::tcp::socket> socket);
+	void addConnection(const std::string &name, std::unique_ptr<boost::asio::ip::tcp::socket> socket);
 	void sendMessage(const std::string &agent, const std::string &msg);
 
 	std::vector<std::string> getAgents() const;

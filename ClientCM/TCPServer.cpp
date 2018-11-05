@@ -3,7 +3,7 @@
 TCPServer::TCPServer(int tcpPort)
 {
 	mPort = tcpPort;
-	mAcceptor = std::make_unique<asio::ip::tcp::acceptor>(mService, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), mPort));
+	mAcceptor = std::make_unique<boost::asio::ip::tcp::acceptor>(mService, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), mPort));
 }
 
 void TCPServer::run()
@@ -16,16 +16,16 @@ void TCPServer::run()
 		while (true)
 		{
 			// cakanie na spojenie
-			std::unique_ptr<asio::ip::tcp::socket> newSocket = std::make_unique<asio::ip::tcp::socket>(service);
+			std::unique_ptr<boost::asio::ip::tcp::socket> newSocket = std::make_unique<boost::asio::ip::tcp::socket>(service);
 			acceptor->accept(*newSocket);
 
 			// prijatie identifikacnej spravy
 			std::size_t bytesReceived{ 0 };
-			asio::error_code error;
+                        boost::system::error_code error;
 			char buffer[1000];
 
 			try {
-				bytesReceived = newSocket->read_some(asio::buffer(buffer), error);
+				bytesReceived = newSocket->read_some(boost::asio::buffer(buffer), error);
 			}
 			catch (std::exception &e)
 			{
@@ -48,9 +48,9 @@ void TCPServer::sendMessage(const std::string &agent, const std::string &msg)
 	if (find != mOpenedConnections.end())
 	{
 		std::size_t bytesSent{ 0 };
-		asio::error_code error;
+                boost::system::error_code error;
 		std::string message = msg + "\n";
-		bytesSent = asio::write(*mOpenedConnections[agent], asio::buffer(msg), error);
+		bytesSent = boost::asio::write(*mOpenedConnections[agent], boost::asio::buffer(msg), error);
 		std::cout << "[TCPServer] Sending message to agent: " << agent << std::endl;
 		std::cout << "[TCPServer] Message content: " << message;
 	}
@@ -64,7 +64,7 @@ void TCPServer::join()
 	mMainThread.join();
 }
 
-void TCPServer::addConnection(const std::string &name, std::unique_ptr<asio::ip::tcp::socket> socket)
+void TCPServer::addConnection(const std::string &name, std::unique_ptr<boost::asio::ip::tcp::socket> socket)
 {
 	mOpenedConnections[name] = std::move(socket);
 }
