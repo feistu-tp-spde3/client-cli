@@ -21,7 +21,7 @@ void TCPServer::run()
 
 			// prijatie identifikacnej spravy
 			std::size_t bytesReceived{ 0 };
-                        boost::system::error_code error;
+			boost::system::error_code error;
 			char buffer[1000];
 
 			try {
@@ -29,9 +29,9 @@ void TCPServer::run()
 			}
 			catch (std::exception &e)
 			{
-				std::cout << "Exceptiom: "<< e.what() << std::endl;
+				std::cout << "Exceptiom: " << e.what() << std::endl;
 			}
-			
+
 			std::string agent(buffer, bytesReceived - 1);
 			std::cout << "[TCPServer] Received identification from agent: " << agent << std::endl;
 			std::cout << "[TCPServer] Establishing tcp connection with agent \'" << agent << "\'" << std::endl;
@@ -48,7 +48,7 @@ void TCPServer::sendMessage(const std::string &agent, const std::string &msg)
 	if (find != mOpenedConnections.end())
 	{
 		std::size_t bytesSent{ 0 };
-                boost::system::error_code error;
+		boost::system::error_code error;
 		std::string message = msg + "\n";
 		bytesSent = boost::asio::write(*mOpenedConnections[agent], boost::asio::buffer(msg), error);
 		std::cout << "[TCPServer] Sending message to agent: " << agent << std::endl;

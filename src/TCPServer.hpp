@@ -15,9 +15,9 @@ private:
 
 	// port na ktorom pocuvame
 	int mPort;
-	
+
 	std::unique_ptr<boost::asio::ip::tcp::acceptor> mAcceptor;
-        boost::asio::io_service mService;
+	boost::asio::io_service mService;
 
 	// otvorene spojenia
 	std::map<std::string, std::unique_ptr<boost::asio::ip::tcp::socket>> mOpenedConnections;
@@ -29,7 +29,7 @@ public:
 
 	int getPort() const { return mPort; }
 
-        boost::asio::io_service &getService() { return mService; }
+	boost::asio::io_service &getService() { return mService; }
 	std::unique_ptr<boost::asio::ip::tcp::acceptor> getAcceptor() { return std::move(mAcceptor); }
 
 	void addConnection(const std::string &name, std::unique_ptr<boost::asio::ip::tcp::socket> socket);
