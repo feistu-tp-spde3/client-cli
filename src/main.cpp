@@ -1,28 +1,23 @@
-#include "AgentSearch.hpp"
-#include "TCPServer.hpp"
+#include "AgentManager.hpp"
 #include "CmdLine.hpp"
 
-// tcp port
-int tcpPort = 9999;
 
 int main(int argc, char **argv)
 {
-	// vyhladanie agentov
-	AgentSearch agentSearcher;
-	agentSearcher.run(tcpPort);
+	AgentManager manager(8888, 9999);
 
-	// cakanie na ich spojenia
-	TCPServer tcpServer(tcpPort);
-	tcpServer.run();
+	// Search agents in the network via UDP broadcast on port 8888
+	manager.discoverAgents();
 
-	std::this_thread::sleep_for(std::chrono::seconds(1));
+	// Run a TCP server on port 9999 so the agents can connect to it
+	manager.run();
 
 	// prikazovy riadok na ovladanie agentov
 	CmdLine cmd;
-	cmd.run(tcpServer);
+	cmd.run(manager);
 
 	cmd.join();
-	tcpServer.join();
+	manager.join();
 
 	return 0;
 }

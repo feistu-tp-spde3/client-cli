@@ -118,15 +118,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\AgentSearch.cpp" />
     <ClCompile Include="..\src\CmdLine.cpp" />
     <ClCompile Include="..\src\main.cpp" />
-    <ClCompile Include="..\src\TCPServer.cpp" />
+    <ClCompile Include="..\src\AgentManager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\AgentSearch.hpp" />
     <ClInclude Include="..\src\CmdLine.hpp" />
-    <ClInclude Include="..\src\TCPServer.hpp" />
+    <ClInclude Include="..\src\AgentManager.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

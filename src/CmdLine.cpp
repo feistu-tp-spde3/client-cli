@@ -1,10 +1,23 @@
 #include "CmdLine.hpp"
+#include "AgentManager.hpp"
 
-void CmdLine::run(TCPServer &server)
+
+const std::string CmdLine::HELP_USAGE = "\
+Help:\n\
+discover -> discover agents\n\
+list -> list of all connected agents\n\
+stop [agent] -> stops agent activity\n\
+start [agent] -> starts agent activity\n\
+filter [agent] [filter] -> resets windivert filter on agent\n\
+";
+
+
+void CmdLine::run(AgentManager &manager)
 {
 	std::cout << "[CmdLine] Starting command line" << std::endl;
 
-	mMainThread = std::thread([this, &server]() {
+	m_main_thread = std::thread([this, &manager]()
+	{
 		while (true)
 		{
 			std::string cmd;
@@ -27,17 +40,16 @@ void CmdLine::run(TCPServer &server)
 
 			if (tokens.at(0) == "help")
 			{
-				std::cout << "Help:" << std::endl;
-				std::cout << "list -> list of all connected agents" << std::endl;
-				std::cout << "stop [agent] -> stops agent activity" << std::endl;
-				std::cout << "start [agent] -> starts agent activity" << std::endl;
-				std::cout << "filter [agent] [filter] -> resets windivert filter on agent" << std::endl;
-
+				std::cout << CmdLine::HELP_USAGE;
 				continue;
+			}
+			else if (tokens.at(0) == "discover")
+			{
+				manager.discoverAgents();
 			}
 			else if (tokens.at(0) == "list")
 			{
-				std::vector<std::string> agents = server.getAgents();
+				std::vector<std::string> agents = manager.getAgents();
 
 				int c = 1;
 				for (auto &agent : agents)
@@ -52,10 +64,14 @@ void CmdLine::run(TCPServer &server)
 			{
 				std::string agent = tokens.at(1);
 
-				auto agents = server.getAgents();
+				auto agents = manager.getAgents();
 				for (auto &a : agents)
+				{
 					if (a == agent)
-						server.sendMessage(agent, "stop");
+					{
+						manager.sendMessage(agent, "stop");
+					}
+				}
 
 				continue;
 			}
@@ -63,10 +79,14 @@ void CmdLine::run(TCPServer &server)
 			{
 				std::string agent = tokens.at(1);
 
-				auto agents = server.getAgents();
+				auto agents = manager.getAgents();
 				for (auto &a : agents)
+				{
 					if (a == agent)
-						server.sendMessage(agent, "start");
+					{
+						manager.sendMessage(agent, "start");
+					}
+				}
 
 				continue;
 			}
@@ -81,12 +101,35 @@ void CmdLine::run(TCPServer &server)
 					filter += " ";
 				}
 
-				auto agents = server.getAgents();
+				auto agents = manager.getAgents();
 				for (auto &a : agents)
+				{
 					if (a == agent)
-						server.sendMessage(agent, "filter//" + filter);
+					{
+						manager.sendMessage(agent, "filter//" + filter);
+					}
+				}
 
 				continue;
+			}
+			else if (tokens.at(0) == "configlist")
+			{
+				std::string agent = tokens.at(1);
+
+				auto agents = manager.getAgents();
+				for (auto &a : agents)
+				{
+					if (a == agent)
+					{
+						manager.sendMessage(agent, "configlist");
+
+						std::string response;
+						if (manager.recvMessage(agent, response))
+						{
+							std::cout << response << "\n";
+						}
+					}
+				}
 			}
 			else {
 				std::cout << "> Wrong command" << std::endl;
@@ -96,7 +139,8 @@ void CmdLine::run(TCPServer &server)
 	});
 }
 
+
 void CmdLine::join()
 {
-	mMainThread.join();
+	m_main_thread.join();
 }

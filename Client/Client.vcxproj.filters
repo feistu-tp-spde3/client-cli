@@ -15,27 +15,21 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\AgentSearch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\CmdLine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\TCPServer.cpp">
+    <ClCompile Include="..\src\AgentManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\AgentSearch.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\CmdLine.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\TCPServer.hpp">
+    <ClInclude Include="..\src\AgentManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

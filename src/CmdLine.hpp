@@ -3,15 +3,20 @@
 #include <iostream>
 #include <thread>
 
-#include "TCPServer.hpp"
 
-class CmdLine {
+class AgentManager;
+
+class CmdLine
+{
 private:
 	// hlavne vlakno 
-	std::thread mMainThread;
+	std::thread m_main_thread;
+
+	static const std::string HELP_USAGE;
+
 public:
 	// spustenie prikazoveho riadku
-	void run(TCPServer &server);
+	void run(AgentManager &manager);
 
 	void join();
 };
