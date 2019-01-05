@@ -6,8 +6,8 @@ set (Client_VERSION_MINOR 0)
 
 set (TARGET_NAME Agent)
 
-file (GLOB CPP_FILES ClientCM/*.cpp)
-file (GLOB HPP_FILES ClientCM/*.hpp)
+file (GLOB CPP_FILES src/*.cpp)
+file (GLOB HPP_FILES src/*.hpp)
 
 set (SOURCE_FILES ${CPP_FILES} ${HPP_FILES})
 
@@ -29,5 +29,5 @@ if (Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
 endif (Boost_FOUND)
 
-add_executable(Client ${SOURCE_FILES})
-target_link_libraries(Client ${LIBS} ${Boost_LIBRARIES})
+add_executable(ClientBin ${SOURCE_FILES})
+target_link_libraries(ClientBin ${LIBS} ${Boost_LIBRARIES})
