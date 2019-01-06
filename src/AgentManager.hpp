@@ -39,4 +39,7 @@ public:
 	bool recvMessage(const std::string &agent, std::string &out);
 
 	std::vector<std::string> getAgents() const;
+	bool isConnected(const std::string &agent) const;
+	void refresh();
+	bool ping(const std::string &agent);
 };

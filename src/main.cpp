@@ -11,13 +11,13 @@ int main(int argc, char **argv)
 
 	// Run a TCP server on port 9999 so the agents can connect to it
 	manager.run();
-
+	
 	// prikazovy riadok na ovladanie agentov
 	CmdLine cmd;
 	cmd.run(manager);
 
-	cmd.join();
 	manager.join();
+	cmd.join();
 
 	return 0;
 }

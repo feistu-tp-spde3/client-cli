@@ -41,7 +41,7 @@ void AgentManager::run()
 {
 	m_main_thread = std::thread([this]()
 	{
-		std::cout << "[AgentManager] Listening on port " << m_server_port << std::endl;
+		std::cout << "[AgentManager] Listening on port " << m_server_port << " waiting for agents\n";
 
 		while (true)
 		{
@@ -61,7 +61,7 @@ void AgentManager::run()
 					std::string agent(buffer, n_received);
 					std::cout << "[AgentManager] Establishing tcp connection with agent \"" << agent << "\"\n";
 
-					this->addConnection(agent, std::move(conn));
+					addConnection(agent, std::move(conn));
 				}
 			}
 			catch (boost::system::system_error &e)
@@ -82,6 +82,41 @@ void AgentManager::join()
 void AgentManager::addConnection(const std::string &name, std::unique_ptr<boost::asio::ip::tcp::socket> conn)
 {
 	m_connections[name] = std::move(conn);
+}
+
+
+void AgentManager::refresh()
+{
+	// https://stackoverflow.com/questions/8234779/how-to-remove-from-a-map-while-iterating-it
+	for (auto it = m_connections.cbegin(); it != m_connections.cend() ; )
+	{
+		std::string agent = (*it).first;
+		if (!ping(agent))
+		{
+			m_connections.erase(it++);
+		}
+		else
+		{
+			++it;
+		}
+	}
+}
+
+
+bool AgentManager::ping(const std::string &agent)
+{
+	if (!sendMessage(agent, "ping"))
+	{
+		return false;
+	}
+
+	std::string response;
+	if (!recvMessage(agent, response))
+	{
+		return false;
+	}
+
+	return response == "pong";
 }
 
 
@@ -165,4 +200,10 @@ std::vector<std::string> AgentManager::getAgents() const
 	}
 
 	return agents;
+}
+
+
+bool AgentManager::isConnected(const std::string &agent) const
+{
+	return m_connections.count(agent);
 }

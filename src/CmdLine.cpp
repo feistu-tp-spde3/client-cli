@@ -4,135 +4,129 @@
 
 const std::string CmdLine::HELP_USAGE = "\
 Help:\n\
-discover -> discover agents\n\
-list -> list of all connected agents\n\
-stop [agent] -> stops agent activity\n\
-start [agent] -> starts agent activity\n\
-filter [agent] [filter] -> resets windivert filter on agent\n\
+discover -> discover agents on network\n\
+list -> list of all connected agents (checks if alive)\n\
+stop [agent] -> stop agent\n\
+start [agent] -> start agent\n\
+filter [agent] [filter] -> change filter on agent\n\
 ";
+
+
+CmdLine::CmdLine()
+{
+	;
+}
 
 
 void CmdLine::run(AgentManager &manager)
 {
-	std::cout << "[CmdLine] Starting command line" << std::endl;
-
 	m_main_thread = std::thread([this, &manager]()
 	{
+		std::cout << "[CmdLine] Starting command line\n";
+
 		while (true)
 		{
-			std::string cmd;
+			std::string input;
 			std::cout << "> ";
-			std::getline(std::cin, cmd);
+			std::getline(std::cin, input);
 
 			// rozsekanie vstupu
 			std::size_t pos = 0;
 			std::vector<std::string> tokens;
 			std::string delimiter = " ";
 
-			while ((pos = cmd.find(delimiter)) != std::string::npos)
+			while ((pos = input.find(delimiter)) != std::string::npos)
 			{
-				std::string  token = cmd.substr(0, pos);
+				std::string token = input.substr(0, pos);
 				tokens.push_back(token);
-				cmd.erase(0, pos + delimiter.length());
+				input.erase(0, pos + delimiter.length());
 			}
 
-			tokens.push_back(cmd);
+			tokens.push_back(input);
 
-			if (tokens.at(0) == "help")
+			std::string cmd = tokens.at(0);
+			// We assume the 1st argument is always agent name
+			std::string agent;
+
+			if (tokens.size() > 1)
+			{
+				agent = tokens.at(1);
+
+				// We check if the agent is connected so we can bail early and dont check it on every command
+				if (!manager.isConnected(agent))
+				{
+					std::cout << "Agent \"" << agent << "\" is not connected\n";
+					continue;
+				}
+			}
+
+			if (cmd == "help")
 			{
 				std::cout << CmdLine::HELP_USAGE;
 				continue;
 			}
-			else if (tokens.at(0) == "discover")
+			else if (cmd == "discover")
 			{
 				manager.discoverAgents();
 			}
-			else if (tokens.at(0) == "list")
+			else if (cmd == "list")
 			{
+				// Check if agents are actually connected first
+				manager.refresh();
+
 				std::vector<std::string> agents = manager.getAgents();
 
 				int c = 1;
 				for (auto &agent : agents)
 				{
-					std::cout << c << ". " << agent << std::endl;
+					std::cout << c << ". " << agent << "\n";
 					c++;
 				}
 
 				continue;
 			}
-			else if (tokens.at(0) == "stop")
+			else if (cmd == "stop")
 			{
-				std::string agent = tokens.at(1);
-
-				auto agents = manager.getAgents();
-				for (auto &a : agents)
+				if (tokens.size() < 2)
 				{
-					if (a == agent)
-					{
-						manager.sendMessage(agent, "stop");
-					}
+					std::cout << "Invalid stop command syntax\n";
+					continue;
 				}
 
+				manager.sendMessage(agent, "stop");
 				continue;
 			}
-			else if (tokens.at(0) == "start")
+			else if (cmd == "start")
 			{
-				std::string agent = tokens.at(1);
-
-				auto agents = manager.getAgents();
-				for (auto &a : agents)
+				if (tokens.size() < 2)
 				{
-					if (a == agent)
-					{
-						manager.sendMessage(agent, "start");
-					}
+					std::cout << "Invalid start command syntax\n";
+					continue;
 				}
 
+				manager.sendMessage(agent, "start");
 				continue;
 			}
-			else if (tokens.at(0) == "filter")
+			else if (cmd == "filter")
 			{
-				std::string agent = tokens.at(1);
+				if (tokens.size() < 3)
+				{
+					std::cout << "Invalid filter command syntax\n";
+					continue;
+				}
+
 				std::string filter;
-
-				for (std::size_t i = 2; i < tokens.size(); i++)
+				for (size_t i = 2; i < tokens.size(); i++)
 				{
 					filter += tokens.at(i);
 					filter += " ";
 				}
 
-				auto agents = manager.getAgents();
-				for (auto &a : agents)
-				{
-					if (a == agent)
-					{
-						manager.sendMessage(agent, "filter//" + filter);
-					}
-				}
-
+				manager.sendMessage(agent, "filter//" + filter);
 				continue;
 			}
-			else if (tokens.at(0) == "configlist")
-			{
-				std::string agent = tokens.at(1);
-
-				auto agents = manager.getAgents();
-				for (auto &a : agents)
-				{
-					if (a == agent)
-					{
-						manager.sendMessage(agent, "configlist");
-
-						std::string response;
-						if (manager.recvMessage(agent, response))
-						{
-							std::cout << response << "\n";
-						}
-					}
-				}
-			}
 			else {
-				std::cout << "> Wrong command" << std::endl;
+				std::cout << "Wrong command\n";
 				continue;
 			}
 		}
