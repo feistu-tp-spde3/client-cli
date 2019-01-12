@@ -6,21 +6,22 @@ const std::string CmdLine::HELP_USAGE = "\
 Help:\n\
 discover -> discover agents on network\n\
 list -> list of all connected agents (checks if alive)\n\
-stop [agent] -> stop agent\n\
-start [agent] -> start agent\n\
-filter [agent] [filter] -> change filter on agent\n\
+stop <agent> -> stop agent\n\
+start <agent> -> start agent\n\
+filter <agent> [set|get] [filter] -> get/set filter on agent\n\
 ";
 
 
-CmdLine::CmdLine()
+CmdLine::CmdLine(AgentManager &manager) :
+	m_manager{ manager }
 {
 	;
 }
 
 
-void CmdLine::run(AgentManager &manager)
+void CmdLine::run()
 {
-	m_main_thread = std::thread([this, &manager]()
+	m_main_thread = std::thread([this]()
 	{
 		std::cout << "[CmdLine] Starting command line\n";
 
@@ -53,9 +54,9 @@ void CmdLine::run(AgentManager &manager)
 				agent = tokens.at(1);
 
 				// We check if the agent is connected so we can bail early and dont check it on every command
-				if (!manager.isConnected(agent))
+				if (!m_manager.isConnected(agent))
 				{
-					std::cout << "Agent \"" << agent << "\" is not connected\n";
+					std::cerr << "Agent \"" << agent << "\" is not connected\n";
 					continue;
 				}
 			}
@@ -63,18 +64,17 @@ void CmdLine::run(AgentManager &manager)
 			if (cmd == "help")
 			{
 				std::cout << CmdLine::HELP_USAGE;
-				continue;
 			}
 			else if (cmd == "discover")
 			{
-				manager.discoverAgents();
+				m_manager.discoverAgents();
 			}
 			else if (cmd == "list")
 			{
 				// Check if agents are actually connected first
-				manager.refresh();
+				m_manager.refresh();
 
-				std::vector<std::string> agents = manager.getAgents();
+				std::vector<std::string> agents = m_manager.getAgents();
 
 				int c = 1;
 				for (auto &agent : agents)
@@ -82,52 +82,33 @@ void CmdLine::run(AgentManager &manager)
 					std::cout << c << ". " << agent << "\n";
 					c++;
 				}
-
-				continue;
 			}
 			else if (cmd == "stop")
 			{
 				if (tokens.size() < 2)
 				{
-					std::cout << "Invalid stop command syntax\n";
+					std::cerr << "Invalid stop command syntax\n";
 					continue;
 				}
 
-				manager.sendMessage(agent, "stop");
-				continue;
+				m_manager.sendMessage(agent, "stop");
 			}
 			else if (cmd == "start")
 			{
 				if (tokens.size() < 2)
 				{
-					std::cout << "Invalid start command syntax\n";
+					std::cerr << "Invalid start command syntax\n";
 					continue;
 				}
 
-				manager.sendMessage(agent, "start");
-				continue;
+				m_manager.sendMessage(agent, "start");
 			}
 			else if (cmd == "filter")
 			{
-				if (tokens.size() < 3)
-				{
-					std::cout << "Invalid filter command syntax\n";
-					continue;
-				}
-
-				std::string filter;
-				for (size_t i = 2; i < tokens.size(); i++)
-				{
-					filter += tokens.at(i);
-					filter += " ";
-				}
-
-				manager.sendMessage(agent, "filter//" + filter);
-				continue;
+				cmd_filter(agent, tokens);
 			}
 			else {
-				std::cout << "Wrong command\n";
-				continue;
+				std::cerr << "Wrong command\n";
 			}
 		}
 	});
@@ -137,4 +118,81 @@ void CmdLine::run(AgentManager &manager)
 void CmdLine::join()
 {
 	m_main_thread.join();
+}
+
+
+bool CmdLine::cmd_filter(const std::string &agent, const std::vector<std::string> &tokens)
+{
+	if (tokens.size() < 3)
+	{
+		std::cerr << "Invalid filter command syntax, check help\n";
+		return false;
+	}
+
+	const std::string &action = tokens.at(2);
+	if (action == "get")
+	{
+		if (!m_manager.sendMessage(agent, "filter"))
+		{
+			std::cerr << "Failed to send get filter command to agent \"" << agent << "\"\n";
+			return false;
+		}
+
+		std::string response;
+		if (!m_manager.recvMessage(agent, response))
+		{
+			std::cerr << "Failed to receive filter from agent \"" << agent << "\"\n";
+			return false;
+		}
+
+		std::cout << "Current agent \"" << agent << "\" filter: \"" << response << "\"\n";
+	}
+	else if (action == "set")
+	{
+		if (tokens.size() < 4)
+		{
+			std::cerr << "No filter to set entered\n";
+			return false;
+		}
+
+		std::string filter;
+		for (size_t i = 3; i < tokens.size(); i++)
+		{
+			filter += tokens.at(i);
+
+			if (i != tokens.size() - 1)
+			{
+				filter += " ";
+			}
+		}
+
+		if (!m_manager.sendMessage(agent, "filter//" + filter))
+		{
+			std::cerr << "Failed to send filter to agent " << agent << "\n";
+			return false;
+		}
+
+		std::string response;
+		if (!m_manager.recvMessage(agent, response))
+		{
+			std::cerr << "Failed to receive response to filter change from agent " << agent << "\n";
+			return false;
+		}
+
+		if (response == "ok")
+		{
+			std::cout << "Filter changed\n";
+		}
+		else
+		{
+			std::cerr << "Failed to change filter\n";
+		}
+	}
+	else
+	{
+		std::cerr << "Unknown filter action: \"" << action << "\"\n";
+		return false;
+	}
+
+	return true;
 }

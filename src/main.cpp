@@ -13,8 +13,8 @@ int main(int argc, char **argv)
 	manager.run();
 	
 	// prikazovy riadok na ovladanie agentov
-	CmdLine cmd;
-	cmd.run(manager);
+	CmdLine cmd(manager);
+	cmd.run();
 
 	manager.join();
 	cmd.join();
