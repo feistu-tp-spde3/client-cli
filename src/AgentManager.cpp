@@ -1,4 +1,4 @@
-#include <chrono>
+#include <boost/chrono.hpp>
 
 #include "AgentManager.hpp"
 #include "json.hpp"
@@ -58,7 +58,7 @@ void AgentManager::run()
 {
 	m_acceptor = std::make_unique<boost::asio::ip::tcp::acceptor>(m_io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), m_server_port));
 
-	m_main_thread = std::thread([this]()
+	m_main_thread = boost::thread([this]()
 	{
 		std::cout << "[AgentManager] Listening on port " << m_server_port << "\n";
 
@@ -97,13 +97,13 @@ void AgentManager::run()
 		}
 	});
 
-	std::thread checking_thread = std::thread([this]()
+	boost::thread checking_thread = boost::thread([this]()
 	{
 		while (true)
 		{
 			// Not using mutex here because refresh does that
 			refresh();
-			std::this_thread::sleep_for(std::chrono::seconds(AGENT_REFRESH_INTERVAL));
+			boost::this_thread::sleep_for(boost::chrono::seconds(AGENT_REFRESH_INTERVAL));
 		}
 	});
 

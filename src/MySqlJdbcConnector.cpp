@@ -18,16 +18,16 @@ bool MySqlJdbcConnector::connect(const std::string &xml_db_config)
 	std::string fullpath = path.string() + "/" + xml_db_config;
 
 	// TODO: move config parsing to AgentManager and make config more general
-    pugi::xml_document xml;
-    pugi::xml_parse_result result = xml.load_file(fullpath.c_str());
+	pugi::xml_document xml;
+	pugi::xml_parse_result result = xml.load_file(fullpath.c_str());
 
-    if (result.status != pugi::xml_parse_status::status_ok)
-    {
+	if (result.status != pugi::xml_parse_status::status_ok)
+	{
 		std::cerr << "[MysqlConnector] Could not parse configuration file \"" << fullpath << "\"\n";
 		return false;
-    }
+	}
 
-    pugi::xml_node configuration = xml.child("Configuration");
+	pugi::xml_node configuration = xml.child("Configuration");
 	if (!configuration)
 	{
 		std::cerr << "[MysqlConnector] Invalid configuration\n";
@@ -35,32 +35,32 @@ bool MySqlJdbcConnector::connect(const std::string &xml_db_config)
 	}
 
 	pugi::xml_node database = configuration.child("MysqlDatabase");
-    if (!database)
-    {
+	if (!database)
+	{
 		std::cerr << "[MysqlConnector] Invalid configuration\n";
 		return false;
-    }
-    
-    std::string url, user, password, name;
-    if (database.child("Url"))
-    {
-        url = database.child("Url").text().as_string();
-    }
+	}
 
-    if (database.child("User"))
-    {
+	std::string url, user, password, name;
+	if (database.child("Url"))
+	{
+		url = database.child("Url").text().as_string();
+	}
+
+	if (database.child("User"))
+	{
 		user = database.child("User").text().as_string();
-    }
+	}
 
-    if (database.child("Password"))
-    {
+	if (database.child("Password"))
+	{
 		password = database.child("Password").text().as_string();
-    }
+	}
 
-    if (database.child("Name"))
-    {
+	if (database.child("Name"))
+	{
 		name = database.child("Name").text().as_string();
-    }
+	}
 
 	try
 	{

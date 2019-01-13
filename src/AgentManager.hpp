@@ -1,8 +1,8 @@
 #pragma once
 
 #include <boost/asio.hpp>
+#include <boost/thread.hpp>
 #include <mutex>
-#include <thread>
 #include <memory>
 #include <map>
 #include <string>
@@ -20,7 +20,7 @@ class AgentManager
 {
 private:
 	std::mutex m_control_mutex;
-	std::thread m_main_thread;
+	boost::thread m_main_thread;
 
 	uint16_t m_discover_port;
 	uint16_t m_server_port;

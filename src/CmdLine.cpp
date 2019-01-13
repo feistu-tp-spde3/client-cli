@@ -26,7 +26,7 @@ CmdLine::CmdLine(AgentManager &manager) :
 
 void CmdLine::run()
 {
-	m_main_thread = std::thread([this]()
+	m_main_thread = boost::thread([this]()
 	{
 		std::cout << "[CmdLine] Starting command line\n";
 

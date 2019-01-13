@@ -1,9 +1,10 @@
 #pragma once
 
+#include <boost/thread.hpp>
+
 #include <iostream>
 #include <vector>
 #include <string>
-#include <thread>
 
 
 class AgentManager;
@@ -13,7 +14,7 @@ class CmdLine
 {
 private:
 	AgentManager &m_manager;
-	std::thread m_main_thread;
+	boost::thread m_main_thread;
 
 	// Handle commands
 	bool cmd_filter(const std::string &agent, const std::vector<std::string> &tokens);

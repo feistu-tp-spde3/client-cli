@@ -21,7 +21,7 @@ private:
 	std::unique_ptr<sql::Connection> m_connection;
 
 public:
-    MySqlJdbcConnector();
+	MySqlJdbcConnector();
 
 	bool connect(const std::string &xml_db_config);
 
