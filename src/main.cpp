@@ -1,10 +1,17 @@
 #include "AgentManager.hpp"
 #include "CmdLine.hpp"
+#include "MySqlJdbcConnector.hpp"
 
 
 int main(int argc, char **argv)
 {
 	AgentManager manager(8888, 9999);
+
+	// Connect to database
+	if (!manager.connectToDb("config_monitor.xml"))
+	{
+		return EXIT_FAILURE;
+	}
 
 	// Search agents in the network via UDP broadcast on port 8888
 	manager.discoverAgents();
@@ -19,5 +26,5 @@ int main(int argc, char **argv)
 	manager.join();
 	cmd.join();
 
-	return 0;
+	return EXIT_SUCCESS;
 }

@@ -7,9 +7,23 @@ using json = nlohmann::json;
 
 AgentManager::AgentManager(uint16_t discover_port, uint16_t server_port) :
 	m_discover_port{ discover_port },
-	m_server_port{ server_port }
+	m_server_port{ server_port },
+	m_db{ MySqlJdbcConnector() }
 {
-	m_acceptor = std::make_unique<boost::asio::ip::tcp::acceptor>(m_io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), server_port));
+	;
+}
+
+
+bool AgentManager::connectToDb(const std::string &xml_db_config)
+{
+	if (!m_db.connect(xml_db_config))
+	{
+		std::cerr << "[AgentManager] Couldn't connect to Mysql database\n";
+		return false;
+	}
+
+	std::cout << "[AgentManager] Connected to Mysql database\n";
+	return true;
 }
 
 
@@ -40,6 +54,8 @@ void AgentManager::discoverAgents()
 
 void AgentManager::run()
 {
+	m_acceptor = std::make_unique<boost::asio::ip::tcp::acceptor>(m_io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), m_server_port));
+
 	m_main_thread = std::thread([this]()
 	{
 		std::cout << "[AgentManager] Listening on port " << m_server_port << "\n";

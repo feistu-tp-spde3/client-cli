@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "json.hpp"
+#include "MySqlJdbcConnector.hpp"
 
 
 using json = nlohmann::json;
@@ -22,6 +23,8 @@ private:
 	uint16_t m_discover_port;
 	uint16_t m_server_port;
 
+	MySqlJdbcConnector m_db;
+
 	std::unique_ptr<boost::asio::ip::tcp::acceptor> m_acceptor;
 	boost::asio::io_service m_io_service;
 
@@ -32,6 +35,7 @@ private:
 public:
 	AgentManager(uint16_t discover_port, uint16_t server_port);
 
+	bool connectToDb(const std::string &xml_db_config);
 	void discoverAgents();
 
 	void run();

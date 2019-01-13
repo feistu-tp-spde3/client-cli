@@ -1,156 +1,175 @@
 #include "MySqlJdbcConnector.hpp"
 
-#include <string>
 #include <iostream>
 #include <sstream>
-#include <stdexcept>
+#include <algorithm>
 
 #include <boost/format.hpp>
 
-#include <jdbc/cppconn/resultset.h>
-#include <jdbc/cppconn/statement.h>
-#include <jdbc/cppconn/sqlstring.h>
-#include <jdbc/cppconn/prepared_statement.h>
-
 #include "pugixml.hpp"
 
-MySqlJdbcConnector::MySqlJdbcConnector(const std::string& url, const std::string& user, const std::string& password, const std::string& database)
+
+MySqlJdbcConnector::MySqlJdbcConnector() :
+	m_driver{ sql::mysql::get_driver_instance() }
 {
-	driver = std::shared_ptr<sql::Driver>(sql::mysql::get_driver_instance());
-	connection = std::shared_ptr<sql::Connection>(driver->connect(url, user, password));
-	connection->setSchema(database);
+	;
 }
 
-MySqlJdbcConnector::MySqlJdbcConnector(const std::string& pathToConfiguration)
+
+bool MySqlJdbcConnector::connect(const std::string &xml_db_config)
 {
+	// TODO: move config parsing to AgentManager and make config more general
     pugi::xml_document xml;
-    pugi::xml_parse_result result = xml.load_file(pathToConfiguration.c_str());
+    pugi::xml_parse_result result = xml.load_file(xml_db_config.c_str());
 
     if (result.status != pugi::xml_parse_status::status_ok)
     {
-        throw std::runtime_error("Could not parse configuration file: " + pathToConfiguration);
+		std::cerr << "[MysqlConnector] Could not parse configuration file \"" << xml_db_config << "\"\n";
+		return false;
     }
 
-    pugi::xml_node clientConfiguration = xml.child("Configuration");
-    
-    pugi::xml_node mysqlConfiguration;
+    pugi::xml_node configuration = xml.child("Configuration");
+	if (!configuration)
+	{
+		std::cerr << "[MysqlConnector] Invalid configuration\n";
+		return false;
+	}
 
-    if (clientConfiguration)
+	pugi::xml_node database = configuration.child("MysqlDatabase");
+    if (!database)
     {
-        mysqlConfiguration = xml.child("MySqlConnector");
+		std::cerr << "[MysqlConnector] Invalid configuration\n";
+		return false;
     }
     
-    std::string url, user, password, database;
-
-    if (mysqlConfiguration)
+    std::string url, user, password, name;
+    if (database.child("Url"))
     {
-        if (mysqlConfiguration.child("Url"))
-        {
-            url = mysqlConfiguration.child("Url").text().as_string();
-        }
-
-        if (mysqlConfiguration.child("User"))
-        {
-            url = mysqlConfiguration.child("User").text().as_string();
-        }
-
-        if (mysqlConfiguration.child("Password"))
-        {
-            url = mysqlConfiguration.child("Password").text().as_string();
-        }
-
-        if (mysqlConfiguration.child("Database"))
-        {
-            url = mysqlConfiguration.child("Database").text().as_string();
-        }
+        url = database.child("Url").text().as_string();
     }
 
-    driver = std::shared_ptr<sql::Driver>(sql::mysql::get_driver_instance());
-    connection = std::shared_ptr<sql::Connection>(driver->connect(url, user, password));
-    connection->setSchema(database);
+    if (database.child("User"))
+    {
+		user = database.child("User").text().as_string();
+    }
+
+    if (database.child("Password"))
+    {
+		password = database.child("Password").text().as_string();
+    }
+
+    if (database.child("Name"))
+    {
+		name = database.child("Name").text().as_string();
+    }
+
+	try
+	{
+		m_connection = std::unique_ptr<sql::Connection>(m_driver->connect(url, user, password));
+		m_connection->setSchema(name);
+		return true;
+	}
+	catch (sql::SQLException &e)
+	{
+		std::cerr << "[MysqlConnector] " << e.what() << "\n";
+		return false;
+	}
+
+	return true;
 }
 
-std::set<std::string> MySqlJdbcConnector::GetColumns(const std::string& tableName, bool IsIdAutoIncrement)
+
+int MySqlJdbcConnector::insert(const std::string &table_name, const std::vector<std::string> &values, bool auto_increment)
 {
-	std::shared_ptr<sql::PreparedStatement> columnsStatement(connection->prepareStatement("SELECT column_name FROM information_schema.columns WHERE table_name = ?"));
-	std::shared_ptr<sql::PreparedStatement> primaryKeyStatement(connection->prepareStatement("SELECT k.COLUMN_NAME FROM information_schema.table_constraints t LEFT JOIN information_schema.key_column_usage k USING(constraint_name, table_schema, table_name) WHERE t.constraint_type = 'PRIMARY KEY' AND t.table_schema = DATABASE() AND t.table_name = ?"));
+	std::vector<std::string> columns = getColumns(table_name, auto_increment);
 
-	columnsStatement->setString(1, tableName);
-	primaryKeyStatement->setString(1, tableName);
+	std::shared_ptr<sql::PreparedStatement> statement(
+		m_connection->prepareStatement(formatInsertStatement(table_name, columns)));
 
-	std::shared_ptr<sql::ResultSet> columnResults(columnsStatement->executeQuery());
-	std::shared_ptr<sql::ResultSet> primaryKeyResult(primaryKeyStatement->executeQuery());
-
-	std::string primaryKey;
-
-	if (primaryKeyResult->next())
+	for (size_t i = 1; i <= values.size(); i++)
 	{
-		primaryKey = primaryKeyResult->getString(1);
+		statement->setString(i, values[i - 1]);
 	}
 
-	std::set<std::string> columns;
+	return statement->executeUpdate();
+}
 
-	while (columnResults->next())
+
+std::vector<std::string> MySqlJdbcConnector::getColumns(const std::string &table_name, bool auto_increment)
+{
+	std::unique_ptr<sql::PreparedStatement> columns_statement(
+		m_connection->prepareStatement("SELECT column_name FROM information_schema.columns WHERE table_name = ?"));
+
+	// Determine which column to ignore because it's a primary key
+	std::unique_ptr<sql::PreparedStatement> pkey_statement(
+		m_connection->prepareStatement("SELECT k.COLUMN_NAME FROM information_schema.table_constraints t LEFT JOIN information_schema.key_column_usage k USING(constraint_name, table_schema, table_name) WHERE t.constraint_type = 'PRIMARY KEY' AND t.table_schema = DATABASE() AND t.table_name = ?"));
+
+	columns_statement->setString(1, table_name);
+	pkey_statement->setString(1, table_name);
+
+	std::unique_ptr<sql::ResultSet> column_result(columns_statement->executeQuery());
+	std::unique_ptr<sql::ResultSet> pkey_result(pkey_statement->executeQuery());
+
+	std::string pkey;
+
+	if (pkey_result->next())
 	{
-		columns.insert(columnResults->getString(1));
+		pkey = pkey_result->getString(1);
 	}
 
-	if (columns.size() == 0)
+	std::vector<std::string> out_columns;
+	while (column_result->next())
 	{
-		throw std::runtime_error("Failed to get table details, check if table exists in the database.");
+		out_columns.push_back(column_result->getString(1));
 	}
 
-	if (IsIdAutoIncrement)
+	if (auto_increment)
 	{
-		if (columns.find(primaryKey) != columns.end())
+		auto it = std::find(out_columns.begin(), out_columns.end(), pkey);
+		if (it != out_columns.end())
 		{
-			columns.erase(primaryKey);
+			out_columns.erase(it);
 		}
 	}
 
-	return columns;
+	return out_columns;
 }
 
-std::string MySqlJdbcConnector::FormInsertStatement(const std::string& tableName, std::set<std::string> columns)
+
+std::string MySqlJdbcConnector::formatInsertStatement(const std::string &table_name, const std::vector<std::string> &columns)
 {
-	std::stringstream ssColumns;
-	std::stringstream ssPlaceHolders;
+	std::stringstream names;
+	std::stringstream placeholders;
 
 	int commas = columns.size() - 1;
 
-	for (std::string column : columns)
+	for (const std::string &col : columns)
 	{
-		ssColumns << column;
-		ssPlaceHolders << "?";
+		names << col;
+		placeholders << "?";
 
 		if (commas > 0)
 		{
-			ssColumns << ", ";
-			ssPlaceHolders << ", ";
+			names << ", ";
+			placeholders << ", ";
 			commas--;
 		}
 	}
 
-	std::string columNamesFormat = ssColumns.str();
-	std::string columnValuesPlaceHolders = ssPlaceHolders.str();
+	boost::format format("INSERT INTO %1%(%2%) VALUES (%3%)");
+	format % table_name % names.str() % placeholders.str();
 
-	boost::format insertFormat("INSERT INTO %1%(%2%) VALUES (%3%)");
-	insertFormat % tableName % columNamesFormat % columnValuesPlaceHolders;
-
-	return insertFormat.str();
+	return format.str();
 }
 
 
-int MySqlJdbcConnector::Insert(std::string tableName, std::vector<std::string> values, bool IsIdAutoIncrement)
+std::unique_ptr<sql::Statement> MySqlJdbcConnector::createStatement()
 {
-	std::set<std::string> columns = GetColumns(tableName, IsIdAutoIncrement);
+	return std::unique_ptr<sql::Statement>(m_connection->createStatement());
+}
 
-	std::shared_ptr<sql::PreparedStatement> preparedInsertStatement(connection->prepareStatement(FormInsertStatement(tableName, columns)));
 
-	for (size_t i = 1; i <= values.size(); i++)
-	{
-		preparedInsertStatement->setString(i, values[i - 1]);
-	}
-
-	return preparedInsertStatement->executeUpdate();
+std::unique_ptr<sql::PreparedStatement> MySqlJdbcConnector::prepareStatement(const std::string &statement)
+{
+	return std::unique_ptr<sql::PreparedStatement>(m_connection->prepareStatement(statement));
 }

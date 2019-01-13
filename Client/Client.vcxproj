@@ -70,8 +70,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(BOOST_INCLUDE_PATH);$(VC_IncludePath);$(WindowsSDK_IncludePath);;$(MYSQL_CONNECTOR_INCLUDE_PATH);</IncludePath>
-    <LibraryPath>$(BOOST_LIB_PATH);$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86;$(MYSQL_CONNECTOR_LIBRARY_PATH);</LibraryPath>
+    <IncludePath>;$(MYSQL_CONNECTOR_INCLUDE_PATH);$(BOOST_INCLUDE_PATH);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>$(MYSQL_CONNECTOR_LIB_PATH);$(BOOST_LIB_PATH);$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86;</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);;$(MYSQL_CONNECTOR_INCLUDE_PATH);</IncludePath>
