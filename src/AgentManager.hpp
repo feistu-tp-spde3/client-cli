@@ -30,6 +30,11 @@ private:
 
 	std::map<std::string, std::unique_ptr<boost::asio::ip::tcp::socket>> m_connections;
 
+	// If agent with that name doesn't exist, create a new record
+	// If it does exist, update last_updated
+	void addAgentToDb(const std::string &agent);
+	bool updateAgentStatus(const std::string &agent, const std::string &status);
+
 	static const int MAX_BUFFER_SIZE{ 1024 };
 
 public:
@@ -41,12 +46,14 @@ public:
 	void run();
 	void join();
 	
-	void addConnection(const std::string &name, std::unique_ptr<boost::asio::ip::tcp::socket> conn);
+	bool ping(const std::string &agent);
+	void refresh();
+
 	bool sendMessage(const std::string &agent, const std::string &msg);
 	bool recvMessage(const std::string &agent, json &out);
-
+	
+	bool isConnected(const std::string &agent) const { return m_connections.count(agent); }
+	void addConnection(const std::string &agent, std::unique_ptr<boost::asio::ip::tcp::socket> conn);
+	std::string getAgentIp(const std::string &agent) const { return m_connections.at(agent)->remote_endpoint().address().to_string(); }
 	std::vector<std::string> getAgents() const;
-	bool isConnected(const std::string &agent) const;
-	void refresh();
-	bool ping(const std::string &agent);
 };

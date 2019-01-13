@@ -84,7 +84,7 @@ void CmdLine::run()
 				int c = 1;
 				for (auto &agent : agents)
 				{
-					std::cout << c << ". " << agent << "\n";
+					std::cout << c << ". " << agent << " (" << m_manager.getAgentIp(agent) << ")\n";
 					c++;
 				}
 			}

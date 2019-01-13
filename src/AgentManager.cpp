@@ -78,7 +78,12 @@ void AgentManager::run()
 					std::cout << "[AgentManager] Establishing tcp connection with agent \"" << agent << "\"\n";
 
 					addConnection(agent, std::move(conn));
+					addAgentToDb(agent);
 				}
+			}
+			catch (sql::SQLException &e)
+			{
+				std::cerr << "[AgentManager] Failed to add agent to DB: " << e.what() << "\n";
 			}
 			catch (boost::system::system_error &e)
 			{
@@ -92,31 +97,6 @@ void AgentManager::run()
 void AgentManager::join()
 {
 	m_main_thread.join();
-}
-
-
-void AgentManager::addConnection(const std::string &name, std::unique_ptr<boost::asio::ip::tcp::socket> conn)
-{
-	m_connections[name] = std::move(conn);
-}
-
-
-void AgentManager::refresh()
-{
-	// https://stackoverflow.com/questions/8234779/how-to-remove-from-a-map-while-iterating-it
-	for (auto it = m_connections.cbegin(); it != m_connections.cend() ; )
-	{
-		const std::string &agent = (*it).first;
-		if (!ping(agent))
-		{
-			std::cout << "Agent \"" << agent << "\" not responding\n";
-			m_connections.erase(it++);
-		}
-		else
-		{
-			++it;
-		}
-	}
 }
 
 
@@ -139,6 +119,43 @@ bool AgentManager::ping(const std::string &agent)
 	}
 
 	return response["response"] == "pong";
+}
+
+
+void AgentManager::refresh()
+{
+	// https://stackoverflow.com/questions/8234779/how-to-remove-from-a-map-while-iterating-it
+	for (auto it = m_connections.cbegin(); it != m_connections.cend(); )
+	{
+		// Copy by value because we delete the pair from the map in one if
+		std::string agent = (*it).first;
+
+		try
+		{
+			bool running = true;
+			if (!ping(agent))
+			{
+				std::cout << "Agent \"" << agent << "\" not responding\n";
+				running = false;
+				m_connections.erase(it++);
+			}
+			else
+			{
+
+				++it;
+			}
+
+			if (!updateAgentStatus(agent, (running ? "running" : "not running")))
+			{
+				std::cerr << "[AgentManager] Failed to update agent \"" << agent << "\" status\n";
+			}
+		}
+		catch (sql::SQLException &e)
+		{
+			std::cerr << "[AgentManager] SQL error while updating status: " << e.what() << "\n";
+		}
+
+	}
 }
 
 
@@ -184,7 +201,7 @@ bool AgentManager::recvMessage(const std::string &agent, json &out)
 			std::string outbuf(buffer, no_received);
 			out = json::parse(outbuf);
 
-			// This is important
+			// Every received message that doesn't contain "response" key is invalid
 			if (!out.count("response"))
 			{
 				return false;
@@ -210,6 +227,55 @@ bool AgentManager::recvMessage(const std::string &agent, json &out)
 }
 
 
+void AgentManager::addAgentToDb(const std::string &agent)
+{
+	auto stat = m_db.prepareStatement("SELECT id FROM agents WHERE name = ?");
+	stat->setString(1, agent);
+
+	std::unique_ptr<sql::ResultSet> res(stat->executeQuery());
+	if (!res->first())
+	{
+		auto insert = m_db.prepareStatement("INSERT INTO agents (name, ip, status) VALUES (?, ?, ?)");
+		insert->setString(1, agent);
+		insert->setString(2, getAgentIp(agent));
+		insert->setString(3, "running");
+		insert->execute();
+	}
+	else
+	{
+		auto update = m_db.prepareStatement("UPDATE agents SET last_updated = now() WHERE id = ?");
+		update->setInt(1, res->getInt("id"));
+		update->execute();
+	}
+}
+
+
+bool AgentManager::updateAgentStatus(const std::string &agent, const std::string &status)
+{
+	auto stat = m_db.prepareStatement("SELECT id FROM agents WHERE name = ?");
+	stat->setString(1, agent);
+
+	std::unique_ptr<sql::ResultSet> res(stat->executeQuery());
+	if (!res->first())
+	{
+		return false;
+	}
+
+	auto update = m_db.prepareStatement("UPDATE agents SET last_updated = now(), status = ? WHERE id = ?");
+	update->setString(1, status);
+	update->setInt(2, res->getInt("id"));
+
+	// ->execute() actually returns 0 on success and 1 on fail, nice library
+	return !update->execute();
+}
+
+
+void AgentManager::addConnection(const std::string &agent, std::unique_ptr<boost::asio::ip::tcp::socket> conn)
+{
+	m_connections[agent] = std::move(conn);
+}
+
+
 std::vector<std::string> AgentManager::getAgents() const
 {
 	std::vector<std::string> agents;
@@ -220,10 +286,4 @@ std::vector<std::string> AgentManager::getAgents() const
 	}
 
 	return agents;
-}
-
-
-bool AgentManager::isConnected(const std::string &agent) const
-{
-	return m_connections.count(agent);
 }
