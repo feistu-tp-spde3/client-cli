@@ -9,6 +9,7 @@ Tool to monitor agents on a network
 - Added "filter get" command to retrieve current agent filter
 - "filter set" command informs the user if the filter was installed or not
 - Added "proc" command to get, add and remove monitored processes on agent (get checks their status: running/not running)
+- Connection to MySql database
 
 ## Build
 
