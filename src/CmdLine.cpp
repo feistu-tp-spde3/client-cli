@@ -1,6 +1,9 @@
 #include "CmdLine.hpp"
 #include "AgentManager.hpp"
+#include "json.hpp"
 
+
+using json = nlohmann::json;
 
 const std::string CmdLine::HELP_USAGE = "\
 Help:\n\
@@ -8,7 +11,8 @@ discover -> discover agents on network\n\
 list -> list of all connected agents (checks if alive)\n\
 stop <agent> -> stop agent\n\
 start <agent> -> start agent\n\
-filter <agent> [set|get] [filter] -> get/set filter on agent\n\
+filter <agent> [get|set] [filter] -> get/set filter on agent\n\
+proc <agent> [get|add|del] [process] -> manipulate monitored processes on agent\n\
 ";
 
 
@@ -91,7 +95,12 @@ void CmdLine::run()
 					continue;
 				}
 
-				m_manager.sendMessage(agent, "stop");
+				json d;
+				d["cmd"] = "stop";
+				d["action"] = "";
+				d["data"] = "";
+
+				m_manager.sendMessage(agent, d.dump());
 			}
 			else if (cmd == "start")
 			{
@@ -101,11 +110,20 @@ void CmdLine::run()
 					continue;
 				}
 
-				m_manager.sendMessage(agent, "start");
+				json d;
+				d["cmd"] = "start";
+				d["action"] = "";
+				d["data"] = "";
+
+				m_manager.sendMessage(agent, d.dump());
 			}
 			else if (cmd == "filter")
 			{
 				cmd_filter(agent, tokens);
+			}
+			else if (cmd == "proc")
+			{
+				cmd_proc(agent, tokens);
 			}
 			else {
 				std::cerr << "Wrong command\n";
@@ -132,20 +150,25 @@ bool CmdLine::cmd_filter(const std::string &agent, const std::vector<std::string
 	const std::string &action = tokens.at(2);
 	if (action == "get")
 	{
-		if (!m_manager.sendMessage(agent, "filter"))
+		json msg;
+		msg["cmd"] = "filter";
+		msg["action"] = action;
+		msg["data"] = "";
+
+		if (!m_manager.sendMessage(agent, msg.dump()))
 		{
 			std::cerr << "Failed to send get filter command to agent \"" << agent << "\"\n";
 			return false;
 		}
 
-		std::string response;
+		json response;
 		if (!m_manager.recvMessage(agent, response))
 		{
 			std::cerr << "Failed to receive filter from agent \"" << agent << "\"\n";
 			return false;
 		}
 
-		std::cout << "Current agent \"" << agent << "\" filter: \"" << response << "\"\n";
+		std::cout << "Current agent \"" << agent << "\" filter: \"" << response["response"] << "\"\n";
 	}
 	else if (action == "set")
 	{
@@ -166,20 +189,25 @@ bool CmdLine::cmd_filter(const std::string &agent, const std::vector<std::string
 			}
 		}
 
-		if (!m_manager.sendMessage(agent, "filter//" + filter))
+		json msg;
+		msg["cmd"] = "filter";
+		msg["action"] = action;
+		msg["data"] = filter;
+
+		if (!m_manager.sendMessage(agent, msg.dump()))
 		{
 			std::cerr << "Failed to send filter to agent " << agent << "\n";
 			return false;
 		}
 
-		std::string response;
+		json response;
 		if (!m_manager.recvMessage(agent, response))
 		{
 			std::cerr << "Failed to receive response to filter change from agent " << agent << "\n";
 			return false;
 		}
 
-		if (response == "ok")
+		if (response["response"] == "ok")
 		{
 			std::cout << "Filter changed\n";
 		}
@@ -192,6 +220,44 @@ bool CmdLine::cmd_filter(const std::string &agent, const std::vector<std::string
 	{
 		std::cerr << "Unknown filter action: \"" << action << "\"\n";
 		return false;
+	}
+
+	return true;
+}
+
+
+bool CmdLine::cmd_proc(const std::string &agent, const std::vector<std::string> &tokens)
+{
+	if (tokens.size() < 3)
+	{
+		std::cerr << "Invalid proc command syntax, check help\n";
+		return false;
+	}
+
+	const std::string &action = tokens.at(2);
+	if (action == "get")
+	{
+
+	}
+	else if (action == "add")
+	{
+		if (tokens.size() < 4)
+		{
+			std::cerr << "Invalid proc command syntax\n";
+			return false;
+		}
+
+		const std::string &process = tokens.at(3);
+	}
+	else if (action == "del")
+	{
+		if (tokens.size() < 4)
+		{
+			std::cerr << "Invalid proc command syntax\n";
+			return false;
+		}
+
+		const std::string &process = tokens.at(3);
 	}
 
 	return true;

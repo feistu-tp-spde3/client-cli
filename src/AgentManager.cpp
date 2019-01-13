@@ -1,4 +1,8 @@
 #include "AgentManager.hpp"
+#include "json.hpp"
+
+
+using json = nlohmann::json;
 
 
 AgentManager::AgentManager(uint16_t discover_port, uint16_t server_port) :
@@ -102,18 +106,23 @@ void AgentManager::refresh()
 
 bool AgentManager::ping(const std::string &agent)
 {
-	if (!sendMessage(agent, "ping"))
+	json request;
+	request["cmd"] = "ping";
+	request["action"] = "";
+	request["data"] = "";
+
+	if (!sendMessage(agent, request.dump()))
 	{
 		return false;
 	}
 
-	std::string response;
+	json response;
 	if (!recvMessage(agent, response))
 	{
 		return false;
 	}
 
-	return response == "pong";
+	return response["response"] == "pong";
 }
 
 
@@ -139,7 +148,7 @@ bool AgentManager::sendMessage(const std::string &agent, const std::string &msg)
 }
 
 
-bool AgentManager::recvMessage(const std::string &agent, std::string &out)
+bool AgentManager::recvMessage(const std::string &agent, json &out)
 {
 	auto find = m_connections.find(agent);
 	if (find == m_connections.end())
@@ -156,13 +165,26 @@ bool AgentManager::recvMessage(const std::string &agent, std::string &out)
 		size_t no_received = find->second->read_some(boost::asio::buffer(buffer), error);
 		if (no_received)
 		{
-			out.assign(buffer, no_received);
+			std::string outbuf(buffer, no_received);
+			out = json::parse(outbuf);
+
+			// This is important
+			if (!out.count("response"))
+			{
+				return false;
+			}
+
 			return true;
 		}
 		else
 		{
 			return false;
 		}
+	}
+	catch (json::exception &e)
+	{
+		std::cerr << "[AgentManager] Failed to parse message with JSON: " << e.what() << "\n";
+		return false;
 	}
 	catch (boost::system::system_error &e)
 	{
