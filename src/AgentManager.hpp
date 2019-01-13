@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/asio.hpp>
+#include <mutex>
 #include <thread>
 #include <memory>
 #include <map>
@@ -18,6 +19,7 @@ using json = nlohmann::json;
 class AgentManager
 {
 private:
+	std::mutex m_control_mutex;
 	std::thread m_main_thread;
 
 	uint16_t m_discover_port;
@@ -36,6 +38,8 @@ private:
 	bool updateAgentStatus(const std::string &agent, const std::string &status);
 
 	static const int MAX_BUFFER_SIZE{ 1024 };
+	// Seconds
+	static const int AGENT_REFRESH_INTERVAL{ 5 };
 
 public:
 	AgentManager(uint16_t discover_port, uint16_t server_port);

@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include "AgentManager.hpp"
 #include "json.hpp"
 
@@ -77,7 +79,10 @@ void AgentManager::run()
 					std::string agent(buffer, n_received);
 					std::cout << "[AgentManager] Establishing tcp connection with agent \"" << agent << "\"\n";
 
+					m_control_mutex.lock();
 					addConnection(agent, std::move(conn));
+					m_control_mutex.unlock();
+
 					addAgentToDb(agent);
 				}
 			}
@@ -91,6 +96,18 @@ void AgentManager::run()
 			}
 		}
 	});
+
+	std::thread checking_thread = std::thread([this]()
+	{
+		while (true)
+		{
+			// Not using mutex here because refresh does that
+			refresh();
+			std::this_thread::sleep_for(std::chrono::seconds(AGENT_REFRESH_INTERVAL));
+		}
+	});
+
+	checking_thread.detach();
 }
 
 
@@ -124,6 +141,8 @@ bool AgentManager::ping(const std::string &agent)
 
 void AgentManager::refresh()
 {
+	m_control_mutex.lock();
+
 	// https://stackoverflow.com/questions/8234779/how-to-remove-from-a-map-while-iterating-it
 	for (auto it = m_connections.cbegin(); it != m_connections.cend(); )
 	{
@@ -135,7 +154,6 @@ void AgentManager::refresh()
 			bool running = true;
 			if (!ping(agent))
 			{
-				std::cout << "Agent \"" << agent << "\" not responding\n";
 				running = false;
 				m_connections.erase(it++);
 			}
@@ -154,8 +172,9 @@ void AgentManager::refresh()
 		{
 			std::cerr << "[AgentManager] SQL error while updating status: " << e.what() << "\n";
 		}
-
 	}
+
+	m_control_mutex.unlock();
 }
 
 

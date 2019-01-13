@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <string>
-#include <set>
 #include <vector>
 
 #include <jdbc/mysql_connection.h>

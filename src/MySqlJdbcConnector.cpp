@@ -1,11 +1,6 @@
-#include "MySqlJdbcConnector.hpp"
-
 #include <iostream>
-#include <sstream>
-#include <algorithm>
 
-#include <boost/format.hpp>
-
+#include "MySqlJdbcConnector.hpp"
 #include "pugixml.hpp"
 
 
