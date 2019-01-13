@@ -24,6 +24,9 @@
     <ClCompile Include="..\src\AgentManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\MySqlJdbcConnector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\CmdLine.hpp">
@@ -33,6 +36,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\json.hpp">
+		<Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\MySqlJdbcConnector.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
