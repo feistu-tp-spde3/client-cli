@@ -5,14 +5,15 @@
 
 using json = nlohmann::json;
 
+
 const std::string CmdLine::HELP_USAGE = "\
 Help:\n\
 discover -> discover agents on network\n\
 list -> list of all connected agents (checks if alive)\n\
 stop <agent> -> stop agent\n\
 start <agent> -> start agent\n\
-filter <agent> [get|set] [filter] -> get/set filter on agent\n\
-proc <agent> [get|add|del] [process] -> manipulate monitored processes on agent\n\
+filter <agent> get|set <filter> -> get/set filter on agent\n\
+proc <agent> get|add <process>|del <process> -> manipulate monitored processes on agent\n\
 ";
 
 
@@ -210,10 +211,12 @@ bool CmdLine::cmd_filter(const std::string &agent, const std::vector<std::string
 		if (response["response"] == "ok")
 		{
 			std::cout << "Filter changed\n";
+			return true;
 		}
 		else
 		{
 			std::cerr << "Failed to change filter\n";
+			return false;
 		}
 	}
 	else
@@ -237,7 +240,31 @@ bool CmdLine::cmd_proc(const std::string &agent, const std::vector<std::string> 
 	const std::string &action = tokens.at(2);
 	if (action == "get")
 	{
+		json msg;
+		msg["cmd"] = "proc";
+		msg["action"] = "get";
+		msg["data"] = "";
 
+		if (!m_manager.sendMessage(agent, msg.dump()))
+		{
+			std::cerr << "Failed to send request to get monitored processes from agent\n";
+			return false;
+		}
+
+		bool ret = false;
+		json response;
+		if (!(ret = m_manager.recvMessage(agent, response)))
+		{
+			std::cerr << "Failed to get monitored processes from agent\n";
+			return false;
+		}
+
+		for (auto &el : response["response"].items())
+		{
+			std::cout << "Process: \"" << el.key() << "\": " << (el.value() ? "running" : "not running") << "\n";
+		}
+		
+		return ret;
 	}
 	else if (action == "add")
 	{
@@ -248,6 +275,35 @@ bool CmdLine::cmd_proc(const std::string &agent, const std::vector<std::string> 
 		}
 
 		const std::string &process = tokens.at(3);
+
+		json msg;
+		msg["cmd"] = "proc";
+		msg["action"] = "add";
+		msg["data"] = process;
+
+		if (!m_manager.sendMessage(agent, msg.dump()))
+		{
+			std::cerr << "Failed to send request to add a monitored process\n";
+			return false;
+		}
+
+		json response;
+		if (!m_manager.recvMessage(agent, response))
+		{
+			std::cerr << "Failed to receive response to process add\n";
+			return false;
+		}
+
+		if (response["response"] == "ok")
+		{
+			std::cout << "Monitored process added\n";
+			return true;
+		}
+		else
+		{
+			std::cerr << "Failed to add monitored process\n";
+			return false;
+		}
 	}
 	else if (action == "del")
 	{
@@ -258,6 +314,35 @@ bool CmdLine::cmd_proc(const std::string &agent, const std::vector<std::string> 
 		}
 
 		const std::string &process = tokens.at(3);
+
+		json msg;
+		msg["cmd"] = "proc";
+		msg["action"] = "del";
+		msg["data"] = process;
+
+		if (!m_manager.sendMessage(agent, msg.dump()))
+		{
+			std::cerr << "Failed to send request to remove a monitored process\n";
+			return false;
+		}
+
+		json response;
+		if (!m_manager.recvMessage(agent, response))
+		{
+			std::cerr << "Failed to receive response to process remove\n";
+			return false;
+		}
+
+		if (response["response"] == "ok")
+		{
+			std::cout << "Monitored process removed\n";
+			return true;
+		}
+		else
+		{
+			std::cerr << "Failed to remove monitored process\n";
+			return false;
+		}
 	}
 
 	return true;
