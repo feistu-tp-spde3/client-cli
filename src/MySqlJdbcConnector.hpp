@@ -18,6 +18,7 @@ private:
 
 public:
 	MySqlJdbcConnector(const std::string& url, const std::string& user, const std::string& password, const std::string& database);
+    MySqlJdbcConnector(const std::string& pathToConfiguration);
 
 	/*
 	*    Inserts values into the given table and returns the number of rows affected

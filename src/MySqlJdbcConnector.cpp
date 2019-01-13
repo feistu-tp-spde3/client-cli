@@ -12,12 +12,62 @@
 #include <jdbc/cppconn/sqlstring.h>
 #include <jdbc/cppconn/prepared_statement.h>
 
+#include "pugixml.hpp"
 
 MySqlJdbcConnector::MySqlJdbcConnector(const std::string& url, const std::string& user, const std::string& password, const std::string& database)
 {
 	driver = std::shared_ptr<sql::Driver>(sql::mysql::get_driver_instance());
 	connection = std::shared_ptr<sql::Connection>(driver->connect(url, user, password));
 	connection->setSchema(database);
+}
+
+MySqlJdbcConnector::MySqlJdbcConnector(const std::string& pathToConfiguration)
+{
+    pugi::xml_document xml;
+    pugi::xml_parse_result result = xml.load_file(pathToConfiguration.c_str());
+
+    if (result.status != pugi::xml_parse_status::status_ok)
+    {
+        throw std::runtime_error("Could not parse configuration file: " + pathToConfiguration);
+    }
+
+    pugi::xml_node clientConfiguration = xml.child("Configuration");
+    
+    pugi::xml_node mysqlConfiguration;
+
+    if (clientConfiguration)
+    {
+        mysqlConfiguration = xml.child("MySqlConnector");
+    }
+    
+    std::string url, user, password, database;
+
+    if (mysqlConfiguration)
+    {
+        if (mysqlConfiguration.child("Url"))
+        {
+            url = mysqlConfiguration.child("Url").text().as_string();
+        }
+
+        if (mysqlConfiguration.child("User"))
+        {
+            url = mysqlConfiguration.child("User").text().as_string();
+        }
+
+        if (mysqlConfiguration.child("Password"))
+        {
+            url = mysqlConfiguration.child("Password").text().as_string();
+        }
+
+        if (mysqlConfiguration.child("Database"))
+        {
+            url = mysqlConfiguration.child("Database").text().as_string();
+        }
+    }
+
+    driver = std::shared_ptr<sql::Driver>(sql::mysql::get_driver_instance());
+    connection = std::shared_ptr<sql::Connection>(driver->connect(url, user, password));
+    connection->setSchema(database);
 }
 
 std::set<std::string> MySqlJdbcConnector::GetColumns(const std::string& tableName, bool IsIdAutoIncrement)

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Configuration>
+	<MySqlConnector>
+		<Url>127.0.0.1</Url>
+		<User>root</User>
+		<Password>root</Password>
+		<Database>ClientDB</Database>
+	</MySqlConnector>
+</Configuration>
