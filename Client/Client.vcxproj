@@ -136,11 +136,8 @@
   <ItemGroup>
     <ClInclude Include="..\src\CmdLine.hpp" />
     <ClInclude Include="..\src\AgentManager.hpp" />
-<<<<<<< HEAD
     <ClInclude Include="..\src\json.hpp" />
-=======
     <ClInclude Include="..\src\MySqlJdbcConnector.hpp" />
->>>>>>> Added Mysql JDBC connector with Insert command
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
