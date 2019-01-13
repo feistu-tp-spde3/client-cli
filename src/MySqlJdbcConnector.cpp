@@ -1,4 +1,5 @@
 #include <iostream>
+#include <boost/filesystem.hpp>
 
 #include "MySqlJdbcConnector.hpp"
 #include "pugixml.hpp"
@@ -13,13 +14,16 @@ MySqlJdbcConnector::MySqlJdbcConnector() :
 
 bool MySqlJdbcConnector::connect(const std::string &xml_db_config)
 {
+	boost::filesystem::path path(boost::filesystem::current_path());
+	std::string fullpath = path.string() + "/" + xml_db_config;
+
 	// TODO: move config parsing to AgentManager and make config more general
     pugi::xml_document xml;
-    pugi::xml_parse_result result = xml.load_file(xml_db_config.c_str());
+    pugi::xml_parse_result result = xml.load_file(fullpath.c_str());
 
     if (result.status != pugi::xml_parse_status::status_ok)
     {
-		std::cerr << "[MysqlConnector] Could not parse configuration file \"" << xml_db_config << "\"\n";
+		std::cerr << "[MysqlConnector] Could not parse configuration file \"" << fullpath << "\"\n";
 		return false;
     }
 
