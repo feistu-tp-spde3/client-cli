@@ -21,8 +21,6 @@ bool AgentManager::loadConfiguration(const std::string &xml_config)
         return false;
     }
 
-    AGENT_REFRESH_INTERVAL = m_config.getAgentUpdateInterval();
-
     return true;
 }
 
@@ -126,7 +124,7 @@ void AgentManager::run()
 			}
 			m_control_mutex.unlock();
 
-			boost::this_thread::sleep_for(boost::chrono::seconds(AGENT_REFRESH_INTERVAL));
+			boost::this_thread::sleep_for(boost::chrono::seconds(m_config.getAgentUpdateInterval()));
 		}
 	});
 

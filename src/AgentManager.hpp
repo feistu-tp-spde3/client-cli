@@ -41,8 +41,6 @@ private:
 	bool updateAgentStatus(const std::string &agent, const std::string &status);
 
 	static const int MAX_BUFFER_SIZE{ 1024 };
-	// Seconds
-	static int AGENT_REFRESH_INTERVAL;
 
 public:
 	AgentManager(uint16_t discover_port, uint16_t server_port);
