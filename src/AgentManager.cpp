@@ -152,7 +152,7 @@ void AgentManager::refreshAgentStatuses()
 				++it;
 			}
 
-			if (!updateAgentStatus(agent, (running ? "running" : "not running")))
+			if (!updateAgentStatus(agent, running))
 			{
 				std::cerr << "[AgentManager] Failed to update agent \"" << agent << "\" status\n";
 			}
@@ -365,7 +365,7 @@ void AgentManager::addAgentToDb(const std::string &agent)
 		auto insert = m_db.prepareStatement("INSERT INTO agents (name, ip, status) VALUES (?, ?, ?)");
 		insert->setString(1, agent);
 		insert->setString(2, getAgentIp(agent));
-		insert->setString(3, "running");
+		insert->setInt(3, 1); // 0 = not running, 1 = running
 		insert->execute();
 	}
 	else
@@ -377,7 +377,7 @@ void AgentManager::addAgentToDb(const std::string &agent)
 }
 
 
-bool AgentManager::updateAgentStatus(const std::string &agent, const std::string &status)
+bool AgentManager::updateAgentStatus(const std::string &agent, int status)
 {
 	auto stat = m_db.prepareStatement("SELECT id FROM agents WHERE name = ?");
 	stat->setString(1, agent);
@@ -389,7 +389,7 @@ bool AgentManager::updateAgentStatus(const std::string &agent, const std::string
 	}
 
 	auto update = m_db.prepareStatement("UPDATE agents SET last_updated = now(), status = ? WHERE id = ?");
-	update->setString(1, status);
+	update->setInt(1, status);
 	update->setInt(2, res->getInt("id"));
 
 	// ->execute() actually returns 0 on success and 1 on fail, nice library

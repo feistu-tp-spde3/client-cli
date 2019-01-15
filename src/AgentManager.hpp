@@ -35,7 +35,7 @@ private:
 	// If agent with that name doesn't exist, create a new record
 	// If it does exist, update last_updated
 	void addAgentToDb(const std::string &agent);
-	bool updateAgentStatus(const std::string &agent, const std::string &status);
+	bool updateAgentStatus(const std::string &agent, int status);
 
 	static const int MAX_BUFFER_SIZE{ 1024 };
 	// Seconds
