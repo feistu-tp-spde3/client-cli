@@ -14,13 +14,13 @@ private:
 public:
     bool parseConfiguration(const std::string& xml_config);
 
-    std::string getDbUrl() const { return m_dbUrl; }
+    const std::string& getDbUrl() const { return m_dbUrl; }
 
-    std::string getDbUser() const { return m_dbUser; }
+    const std::string& getDbUser() const { return m_dbUser; }
 
-    std::string getDbPassword() const { return m_dbPassword; }
+    const std::string& getDbPassword() const { return m_dbPassword; }
 
-    std::string getDbName() const { return m_dbName; }
+    const std::string& getDbName() const { return m_dbName; }
 
     int getAgentUpdateInterval() const { return m_agentUpdateInterval; }
 };
