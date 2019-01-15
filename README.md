@@ -2,15 +2,15 @@
 Tool to monitor agents on a network
 
 ## New features
+- Connection to Mysql database
 - Two-way communication with agent (previouly: monitor -> agent)
 - Communication format is JSON (previously: basic text)
 - Added "discover" command to discover agents on a network (previously this was done only on startup)
-- Added "list" command that lists connected agents & checks their online status (via ping/pong messages)
+- Added "list" command that lists connected agents, checks their status and updates it in DB
 - Added "filter get" command to retrieve current agent filter
 - "filter set" command informs the user if the filter was installed or not
 - Added "proc" command to get, add and remove monitored processes on agent (get checks their status: running/not running)
-- Connection to Mysql database
-- Adding/updating agents and their statuses in DB
+- Agent statuses and monitored processes are periodically updated in DB
 
 ## Build
 
