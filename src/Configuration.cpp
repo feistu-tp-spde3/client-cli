@@ -56,28 +56,3 @@ bool Configuration::parseConfiguration(const std::string& xml_config)
         m_dbName = database.child("Name").text().as_string();
     }
 }
-
-std::string Configuration::getDbUrl() const
-{
-    return m_dbUrl;
-}
-
-std::string Configuration::getDbUser() const
-{
-    return m_dbUser;
-}
-
-std::string Configuration::getDbPassword() const
-{
-    return m_dbPassword;
-}
-
-std::string Configuration::getDbName() const
-{
-    return m_dbName;
-}
-
-int Configuration::getAgentUpdateInterval() const
-{
-    return m_agentUpdateInterval;
-}
