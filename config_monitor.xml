@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
 <Configuration>
-        <MysqlDatabase>
-                <Url>tcp://host:port</Url>
-                <User>user</User>
-                <Password>password</Password>
-                <Name>database_name</Name>
+    <MysqlDatabase>
+		<Url>tcp://host:port</Url>
+		<User>user</User>
+		<Password>password</Password>
+		<Name>database_name</Name>
 	</MysqlDatabase>
+	<UpdateInterval>5</UpdateInterval> <!-- Seconds -->
 </Configuration>

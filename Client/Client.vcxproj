@@ -129,6 +129,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\CmdLine.cpp" />
+    <ClCompile Include="..\src\Configuration.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\AgentManager.cpp" />
     <ClCompile Include="..\src\MySqlJdbcConnector.cpp" />
@@ -137,6 +138,7 @@
   <ItemGroup>
     <ClInclude Include="..\src\CmdLine.hpp" />
     <ClInclude Include="..\src\AgentManager.hpp" />
+    <ClInclude Include="..\src\Configuration.hpp" />
     <ClInclude Include="..\src\json.hpp" />
     <ClInclude Include="..\src\MySqlJdbcConnector.hpp" />
     <ClInclude Include="..\src\pugiconfig.hpp" />

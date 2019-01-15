@@ -7,8 +7,13 @@ int main(int argc, char **argv)
 {
 	AgentManager manager(8888, 9999);
 
+    if (!manager.loadConfiguration("config_monitor.xml"))
+    {
+        std::cerr << "Failed to load configuration."; //TODO: ASK - maybe return EXIT FAILURE or other handling ? 
+    }
+
 	// Connect to database
-	if (!manager.connectToDb("config_monitor.xml"))
+	if (!manager.connectToDb())
 	{
 		return EXIT_FAILURE;
 	}

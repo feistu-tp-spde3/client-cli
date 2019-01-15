@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "Configuration.hpp"
+
 #include <jdbc/mysql_connection.h>
 #include <jdbc/mysql_driver.h>
 #include <jdbc/cppconn/resultset.h>
@@ -23,7 +25,7 @@ private:
 public:
 	MySqlJdbcConnector();
 
-	bool connect(const std::string &xml_db_config);
+	bool connect(const Configuration &config);
 
 	std::unique_ptr<sql::Statement> createStatement();
 

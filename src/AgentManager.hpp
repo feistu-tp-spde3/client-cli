@@ -11,7 +11,8 @@
 
 #include "json.hpp"
 #include "MySqlJdbcConnector.hpp"
-
+#include "pugixml.hpp"
+#include "Configuration.hpp"
 
 using json = nlohmann::json;
 
@@ -24,6 +25,8 @@ private:
 
 	uint16_t m_discover_port;
 	uint16_t m_server_port;
+
+    Configuration m_config;
 
 	MySqlJdbcConnector m_db;
 
@@ -39,13 +42,15 @@ private:
 
 	static const int MAX_BUFFER_SIZE{ 1024 };
 	// Seconds
-	static const int AGENT_REFRESH_INTERVAL{ 5 };
+	static int AGENT_REFRESH_INTERVAL;
 
 public:
 	AgentManager(uint16_t discover_port, uint16_t server_port);
 
-	bool connectToDb(const std::string &xml_db_config);
+	bool connectToDb();
 	void discoverAgents();
+
+    bool loadConfiguration(const std::string &xml_config);
 
 	void run();
 	void join();

@@ -15,10 +15,22 @@ AgentManager::AgentManager(uint16_t discover_port, uint16_t server_port) :
 	;
 }
 
-
-bool AgentManager::connectToDb(const std::string &xml_db_config)
+bool AgentManager::loadConfiguration(const std::string &xml_config)
 {
-	if (!m_db.connect(xml_db_config))
+    if (!m_config.parseConfiguration(xml_config))
+    {
+        return false;
+    }
+
+    AGENT_REFRESH_INTERVAL = m_config.getAgentUpdateInterval();
+
+    return true;
+}
+
+
+bool AgentManager::connectToDb()
+{
+	if (!m_db.connect(m_config))
 	{
 		std::cerr << "[AgentManager] Couldn't connect to Mysql database\n";
 		return false;
