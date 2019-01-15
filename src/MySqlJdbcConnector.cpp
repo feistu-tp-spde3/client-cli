@@ -39,3 +39,11 @@ std::unique_ptr<sql::PreparedStatement> MySqlJdbcConnector::prepareStatement(con
 {
 	return std::unique_ptr<sql::PreparedStatement>(m_connection->prepareStatement(statement));
 }
+
+void MySqlJdbcConnector::tryReconnect()
+{
+    if (!m_connection->isValid())
+    {
+        m_connection->reconnect();
+    }
+}

@@ -3,7 +3,6 @@
 #include "AgentManager.hpp"
 #include "json.hpp"
 
-
 using json = nlohmann::json;
 
 
@@ -94,7 +93,8 @@ void AgentManager::run()
 					m_control_mutex.lock();
 					addConnection(agent, std::move(conn));
 					m_control_mutex.unlock();
-
+                    
+                    m_db.tryReconnect();
 					addAgentToDb(agent);
 				}
 			}
@@ -163,6 +163,8 @@ void AgentManager::refreshAgentStatuses()
 
 				++it;
 			}
+
+            m_db.tryReconnect();
 
 			if (!updateAgentStatus(agent, (running ? "running" : "not running")))
 			{

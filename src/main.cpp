@@ -9,7 +9,8 @@ int main(int argc, char **argv)
 
     if (!manager.loadConfiguration("config_monitor.xml"))
     {
-        std::cerr << "Failed to load configuration."; //TODO: ASK - maybe return EXIT FAILURE or other handling ? 
+        std::cerr << "Failed to load configuration.";
+        return EXIT_FAILURE; 
     }
 
 	// Connect to database

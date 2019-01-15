@@ -27,6 +27,8 @@ public:
 
 	bool connect(const Configuration &config);
 
+    void tryReconnect();
+
 	std::unique_ptr<sql::Statement> createStatement();
 
 	// Executing a prepared statement takes less time than Statement because it 
