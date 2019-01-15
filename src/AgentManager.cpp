@@ -102,7 +102,18 @@ void AgentManager::run()
 		while (true)
 		{
 			// Not using mutex here because refresh does that
-			refresh();
+			// Update agent statuses
+			refreshAgentStatuses();
+			
+			// Lock mutex so nothing is added to the dict meanwhile & cmdline doesnt issue a command
+			m_control_mutex.lock();
+			for (const auto &el : m_connections)
+			{
+				// Dont care about return value
+				updateAgentProcesses(el.first);
+			}
+			m_control_mutex.unlock();
+
 			boost::this_thread::sleep_for(boost::chrono::seconds(AGENT_REFRESH_INTERVAL));
 		}
 	});
@@ -117,29 +128,7 @@ void AgentManager::join()
 }
 
 
-bool AgentManager::ping(const std::string &agent)
-{
-	json request;
-	request["cmd"] = "ping";
-	request["action"] = "";
-	request["data"] = "";
-
-	if (!sendMessage(agent, request.dump()))
-	{
-		return false;
-	}
-
-	json response;
-	if (!recvMessage(agent, response))
-	{
-		return false;
-	}
-
-	return response["response"] == "pong";
-}
-
-
-void AgentManager::refresh()
+void AgentManager::refreshAgentStatuses()
 {
 	m_control_mutex.lock();
 
@@ -175,6 +164,125 @@ void AgentManager::refresh()
 	}
 
 	m_control_mutex.unlock();
+}
+
+
+bool AgentManager::updateAgentProcesses(const std::string &agent, bool print)
+{
+	json request;
+	request["cmd"] = "proc";
+	request["action"] = "get";
+	request["data"] = "";
+
+	if (!sendMessage(agent, request.dump()))
+	{
+		std::cerr << "[AgentManager] Failed to send request to get monitored processes from agent\n";
+		return false;
+	}
+
+	json response;
+	if (!recvMessage(agent, response))
+	{
+		std::cerr << "[AgentManager] Failed to get monitored processes from agent\n";
+		return false;
+	}
+
+	if (print)
+	{
+		for (const auto &el : response["response"].items())
+		{
+			std::cout << "Process: \"" << el.key() << "\": " << (el.value() ? "running" : "not running") << "\n";
+		}
+	}
+
+	try
+	{
+		auto stat = m_db.prepareStatement("SELECT id FROM agents WHERE name = ?");
+		stat->setString(1, agent);
+
+		std::unique_ptr<sql::ResultSet> res(stat->executeQuery());
+		if (!res->first())
+		{
+			return false;
+		}
+		
+		int agent_id = res->getInt("id");
+
+		// First, check all processes marked with agent_id in the table
+		// If they dont match any processes in the response, mark them as not monitored
+		stat = m_db.prepareStatement("SELECT id,name FROM processes WHERE agent_id = ?");
+		stat->setInt(1, agent_id);
+
+		res = std::unique_ptr<sql::ResultSet>(stat->executeQuery());
+		while (res->next())
+		{
+			int proc_id = res->getInt("id");
+			if (!response["response"].count(res->getString("name")))
+			{
+				auto update = m_db.prepareStatement("UPDATE processes SET monitored = 0 WHERE id = ?");
+				update->setInt(1, proc_id);
+				update->execute();
+			}
+		}
+
+		// Second, go through all *currently* monitored processes
+		// If a monitored process is already in the table, update its status
+		// If it's not in the table, insert it
+		for (const auto &el : response["response"].items())
+		{
+			stat = m_db.prepareStatement("SELECT id FROM processes WHERE agent_id = ? AND name = ?");
+			stat->setInt(1, agent_id);
+			stat->setString(2, el.key());
+
+			res = std::unique_ptr<sql::ResultSet>(stat->executeQuery());
+			// Check if monitored process is in the table
+			if (res->first())
+			{
+				auto update = m_db.prepareStatement("UPDATE processes SET monitored = 1, status = ? WHERE id = ?");
+				update->setInt(1, el.value());
+				update->setInt(2, res->getInt("id"));
+				update->execute();
+			}
+			else
+			{
+				auto insert = m_db.prepareStatement("INSERT INTO processes (agent_id, name, monitored, status) VALUES (?, ?, ?, ?)");
+				insert->setInt(1, agent_id);
+				insert->setString(2, el.key());
+				insert->setInt(3, 1);
+				insert->setInt(4, el.value());
+				insert->execute();
+			}
+		}
+	}
+	catch (sql::SQLException &e)
+	{
+		std::cerr << "[AgentManager] SQL error while updating processes: " << e.what() << "\n";
+		// No need to return here
+	}
+
+	return true;
+}
+
+
+bool AgentManager::ping(const std::string &agent)
+{
+	json request;
+	request["cmd"] = "ping";
+	request["action"] = "";
+	request["data"] = "";
+
+	if (!sendMessage(agent, request.dump()))
+	{
+		return false;
+	}
+
+	json response;
+	if (!recvMessage(agent, response))
+	{
+		return false;
+	}
+
+	return response["response"] == "pong";
 }
 
 

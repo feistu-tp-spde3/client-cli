@@ -49,9 +49,12 @@ public:
 
 	void run();
 	void join();
+	void lock() { m_control_mutex.lock(); }
+	void unlock() { m_control_mutex.unlock(); }
 	
+	void refreshAgentStatuses();
+	bool updateAgentProcesses(const std::string &agent, bool print = false);
 	bool ping(const std::string &agent);
-	void refresh();
 
 	bool sendMessage(const std::string &agent, const std::string &msg);
 	bool recvMessage(const std::string &agent, json &out);

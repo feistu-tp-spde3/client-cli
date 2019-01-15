@@ -77,7 +77,7 @@ void CmdLine::run()
 			else if (cmd == "list")
 			{
 				// Check if agents are actually connected first
-				m_manager.refresh();
+				m_manager.refreshAgentStatuses();
 
 				std::vector<std::string> agents = m_manager.getAgents();
 
@@ -88,43 +88,29 @@ void CmdLine::run()
 					c++;
 				}
 			}
-			else if (cmd == "stop")
-			{
-				if (tokens.size() < 2)
-				{
-					std::cerr << "Invalid stop command syntax\n";
-					continue;
-				}
-
-				json d;
-				d["cmd"] = "stop";
-				d["action"] = "";
-				d["data"] = "";
-
-				m_manager.sendMessage(agent, d.dump());
-			}
 			else if (cmd == "start")
 			{
-				if (tokens.size() < 2)
-				{
-					std::cerr << "Invalid start command syntax\n";
-					continue;
-				}
-
-				json d;
-				d["cmd"] = "start";
-				d["action"] = "";
-				d["data"] = "";
-
-				m_manager.sendMessage(agent, d.dump());
+				m_manager.lock();
+				cmd_start(agent, tokens);
+				m_manager.unlock();
+			}
+			else if (cmd == "stop")
+			{
+				m_manager.lock();
+				cmd_start(agent, tokens);
+				m_manager.unlock();
 			}
 			else if (cmd == "filter")
 			{
+				m_manager.lock();
 				cmd_filter(agent, tokens);
+				m_manager.unlock();
 			}
 			else if (cmd == "proc")
 			{
+				m_manager.lock();
 				cmd_proc(agent, tokens);
+				m_manager.unlock();
 			}
 			else {
 				std::cerr << "Wrong command\n";
@@ -137,6 +123,40 @@ void CmdLine::run()
 void CmdLine::join()
 {
 	m_main_thread.join();
+}
+
+
+bool CmdLine::cmd_start(const std::string &agent, const std::vector<std::string> &tokens)
+{
+	if (tokens.size() < 2)
+	{
+		std::cerr << "Invalid start command syntax\n";
+		return false;
+	}
+
+	json d;
+	d["cmd"] = "start";
+	d["action"] = "";
+	d["data"] = "";
+
+	return m_manager.sendMessage(agent, d.dump());
+}
+
+
+bool CmdLine::cmd_stop(const std::string &agent, const std::vector<std::string> &tokens)
+{
+	if (tokens.size() < 2)
+	{
+		std::cerr << "Invalid stop command syntax\n";
+		return false;
+	}
+
+	json d;
+	d["cmd"] = "stop";
+	d["action"] = "";
+	d["data"] = "";
+
+	return m_manager.sendMessage(agent, d.dump());
 }
 
 
@@ -240,31 +260,7 @@ bool CmdLine::cmd_proc(const std::string &agent, const std::vector<std::string> 
 	const std::string &action = tokens.at(2);
 	if (action == "get")
 	{
-		json msg;
-		msg["cmd"] = "proc";
-		msg["action"] = "get";
-		msg["data"] = "";
-
-		if (!m_manager.sendMessage(agent, msg.dump()))
-		{
-			std::cerr << "Failed to send request to get monitored processes from agent\n";
-			return false;
-		}
-
-		bool ret = false;
-		json response;
-		if (!(ret = m_manager.recvMessage(agent, response)))
-		{
-			std::cerr << "Failed to get monitored processes from agent\n";
-			return false;
-		}
-
-		for (auto &el : response["response"].items())
-		{
-			std::cout << "Process: \"" << el.key() << "\": " << (el.value() ? "running" : "not running") << "\n";
-		}
-		
-		return ret;
+		return m_manager.updateAgentProcesses(agent, true);
 	}
 	else if (action == "add")
 	{
