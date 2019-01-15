@@ -26,7 +26,7 @@ public:
 	MySqlJdbcConnector();
 
 	bool connect(const Configuration &config);
-    bool tryReconnect();
+	bool tryReconnect();
 
 	std::unique_ptr<sql::Statement> createStatement();
 
