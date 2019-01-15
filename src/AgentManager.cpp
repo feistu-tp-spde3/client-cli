@@ -3,7 +3,6 @@
 #include "AgentManager.hpp"
 #include "json.hpp"
 
-
 using json = nlohmann::json;
 
 
@@ -16,9 +15,15 @@ AgentManager::AgentManager(uint16_t discover_port, uint16_t server_port) :
 }
 
 
-bool AgentManager::connectToDb(const std::string &xml_db_config)
+bool AgentManager::loadConfiguration(const std::string &xml_config)
 {
-	if (!m_db.connect(xml_db_config))
+	return m_config.parse(xml_config);
+}
+
+
+bool AgentManager::connectToDb()
+{
+	if (!m_db.connect(m_config))
 	{
 		std::cerr << "[AgentManager] Couldn't connect to Mysql database\n";
 		return false;
@@ -82,7 +87,7 @@ void AgentManager::run()
 					m_control_mutex.lock();
 					addConnection(agent, std::move(conn));
 					m_control_mutex.unlock();
-
+                    
 					addAgentToDb(agent);
 				}
 			}
@@ -101,6 +106,8 @@ void AgentManager::run()
 	{
 		while (true)
 		{
+			m_db.tryReconnect();
+
 			// Not using mutex here because refresh does that
 			// Update agent statuses
 			refreshAgentStatuses();
@@ -114,7 +121,7 @@ void AgentManager::run()
 			}
 			m_control_mutex.unlock();
 
-			boost::this_thread::sleep_for(boost::chrono::seconds(AGENT_REFRESH_INTERVAL));
+			boost::this_thread::sleep_for(boost::chrono::seconds(m_config.getAgentUpdateInterval()));
 		}
 	});
 
