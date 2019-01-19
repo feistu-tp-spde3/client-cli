@@ -79,15 +79,33 @@ void AgentManager::run()
 				char buffer[MAX_BUFFER_SIZE] = { 0 };
 				size_t n_received = conn->read_some(boost::asio::buffer(buffer), ec);
 
-				if (n_received)
+				if (!n_received)
 				{
-					std::string agent(buffer, n_received);
+					// No data received from the agent
+					conn->close();
+					continue;
+				}
+
+				// Agent identification
+				std::string ident(buffer, n_received);
+
+				if (ident.find("agentName", 0) == std::string::npos)
+				{
+					// Invalid identification format
+					conn->close();
+					continue;
+				}
+
+				size_t delim = ident.find("/", 0);
+				if (delim)
+				{
+					std::string agent = ident.substr(delim + 1, ident.size() - delim);
 					std::cout << "[AgentManager] Establishing tcp connection with agent \"" << agent << "\"\n";
 
 					m_control_mutex.lock();
 					addConnection(agent, std::move(conn));
 					m_control_mutex.unlock();
-                    
+
 					addAgentToDb(agent);
 				}
 			}
